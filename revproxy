@@ -24,12 +24,13 @@ if [ ! -f /usr/local/bin/revproxy ]; then
     # O arquivo não existe, então prossegue com a instalação
     echo -e "${amarelo}Instalando revproxy...${sem_cor}" && sleep 1
 
-    # wget -q -O /usr/local/bin/revproxy https://link_para_o_executavel/revproxy
+    # Baixa o executável e move para /usr/local/bin
+    wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
 
     # Torna o arquivo executável
     chmod +x /usr/local/bin/revproxy
 
-    echo -e "${verde}revproxy instalado com sucesso em /usr/local/bin/revproxy.${sem_cor}"
+    echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando${rosa}revproxy${sem_cor}"
 else
     echo -e "${azul}/usr/local/bin/revproxy já está instalado.${sem_cor}"
 fi

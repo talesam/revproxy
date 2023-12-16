@@ -2,8 +2,12 @@
 
 Script utilizado para conectar vários protocolos em uma única porta.
 
-Execução:
-
+## Instalação
 ```
-bash <(wget -qO- /revproxy.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/talesam/revproxy/main/revproxy)
+```
+
+## Execução
+```
+revproxy
 ```
