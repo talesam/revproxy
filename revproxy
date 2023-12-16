@@ -20,6 +20,11 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Verifica se o arquivo /usr/local/bin/revproxy já existe
+if [ -f /usr/local/bin/revproxy ]; then
+    revproxy_installed=true
+fi
+
 # Função para instalar/atualizar revproxy
 install_revproxy() {
     clear
