@@ -9,9 +9,9 @@ azul='\033[0;34m'
 rosa='\033[0;35m'
 cinza='\033[0;90m'
 sem_cor='\033[0m'
-
-# Versão do script
-versao="1.2"
+revproxy_installed=false
+local_version="1.2"
+remote_version_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
 
 # Verifica se o script está sendo executado como root
 if [[ $EUID -ne 0 ]]; then
@@ -19,6 +19,31 @@ if [[ $EUID -ne 0 ]]; then
     echo -e "${vermelha}Este script deve ser executado como root ou com sudo.${sem_cor}"
     exit 1
 fi
+
+# Função para instalar/atualizar revproxy
+install_revproxy() {
+    if [ ! -f /usr/local/bin/revproxy ]; then
+        echo -e "${amarelo}Instalando revproxy...${sem_cor}"
+        wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
+        chmod +x /usr/local/bin/revproxy
+        echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando${rosa}revproxy${sem_cor}"
+        revproxy_installed=true
+    else
+        echo -e "${azul}/usr/local/bin/revproxy já está instalado.${sem_cor}"
+    fi
+}
+
+# Função para verificar e atualizar a versão do script
+check_update() {
+    remote_version=$(wget -qO- "$remote_version_url")
+    if [ "$remote_version" != "$local_version" ]; then
+        echo -e "${amarelo}Uma nova versão do script está disponível!${sem_cor}"
+        echo -e "${amarelo}Versão Atual: $local_version, Nova Versão: $remote_version${sem_cor}"
+        # Implementar a lógica de atualização aqui
+    else
+        echo -e "${verde}Você já está na versão mais recente ($local_version).${sem_cor}"
+    fi
+}
 
 # Verifica se o arquivo /usr/local/bin/revproxy já existe
 if [ ! -f /usr/local/bin/revproxy ]; then
@@ -103,6 +128,7 @@ restore_proxy() {
 
 # Função para listar portas em execução
 list_ports() {
+    clear
     echo -e "${amarelo}Portas em execução:${sem_cor}"
     netstat -tuln | grep LISTEN
 }
@@ -157,12 +183,14 @@ run_proxy() {
 # Menu principal
 clear
 while true; do
-    echo -e "   ${azul}RevProxy ${sem_cor} - ${amarelo}$versao${sem_cor}"
+    echo -e "   ${azul}RevProxy ${sem_cor} - ${amarelo}$local_version${sem_cor}"
     echo ""
     echo -e "1. ${verde}Instalar/Atualizar Proxy${sem_cor}"
     echo -e "2. ${amarelo}Restaurar Proxy Original${sem_cor}"
-    echo -e "3. ${verde}Executar Proxy com HTTP e SSH${sem_cor}"
-    echo -e "4. ${verde}Executar Proxy com HTTP e OpenVPN${sem_cor}"
+    if [ "$revproxy_installed" = true ]; then
+        echo -e "3. ${verde}Executar Proxy com HTTP e SSH${sem_cor}"
+        echo -e "4. ${verde}Executar Proxy com HTTP e OpenVPN${sem_cor}"
+    fi
     echo -e "5. ${azul}Listar portas em execução${sem_cor}"
     echo -e "6. ${rosa}Encerrar processo em uma porta${sem_cor}"
     echo -e "0. ${vermelha}Sair${sem_cor}"
@@ -171,10 +199,10 @@ while true; do
     read option
 
     case $option in
-        1) install_proxy ;;
+        1) install_revproxy ;;
         2) restore_proxy ;;
-        3) run_proxy "ssh" ;;
-        4) run_proxy "openvpn" ;;
+        3) [ "$revproxy_installed" = true ] && run_proxy "ssh" ;;
+        4) [ "$revproxy_installed" = true ] && run_proxy "openvpn" ;;
         5) list_ports ;;
         6) kill_port ;;
         0) break ;;
