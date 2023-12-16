@@ -117,6 +117,7 @@ restore_proxy() {
         mv /usr/bin/proxy.bak /usr/bin/proxy
         echo -e " ${verde}*${sem_cor} Proxy original restaurado com sucesso."
         echo ""
+        revproxy_installed=false
     else
         echo ""
         echo -e "${vermelha}Backup do proxy não encontrado.${sem_cor}"
