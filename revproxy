@@ -29,11 +29,13 @@ fi
 install_revproxy() {
     clear
     if [ ! -f /usr/local/bin/revproxy ]; then
+        echo ""
         echo -e "${amarelo}Instalando revproxy...${sem_cor}"
         wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
         chmod +x /usr/local/bin/revproxy
-        echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando${rosa}revproxy${sem_cor}"
+        echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando ${rosa}revproxy${sem_cor}"
         revproxy_installed=true
+        echo ""
     else
         echo -e "${azul}/usr/local/bin/revproxy já está instalado.${sem_cor}"
     fi
@@ -119,7 +121,6 @@ restore_proxy() {
         echo ""
         revproxy_installed=false
     else
-        echo ""
         echo -e "${vermelha}Backup do proxy não encontrado.${sem_cor}"
         echo ""
     fi
@@ -185,8 +186,8 @@ while true; do
     echo -e "   ${azul}RevProxy ${sem_cor} - ${amarelo}$local_version${sem_cor}"
     echo ""
     echo -e "1. ${verde}Instalar Proxy${sem_cor}"
-    echo -e "2. ${amarelo}Restaurar Proxy Original${sem_cor}"
     if [ "$revproxy_installed" = true ]; then
+        echo -e "2. ${amarelo}Restaurar Proxy Original${sem_cor}"
         echo -e "3. ${verde}Executar Proxy com HTTP e SSH${sem_cor}"
         echo -e "4. ${verde}Executar Proxy com HTTP e OpenVPN${sem_cor}"
     fi
