@@ -34,6 +34,8 @@ install_revproxy() {
         wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
         chmod +x /usr/local/bin/revproxy
         echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando ${rosa}revproxy${sem_cor}"
+        
+        install_proxy # Chama a função para instalar o proxy
         revproxy_installed=true
         echo ""
     else
@@ -64,7 +66,7 @@ check_update() {
 
 # Solicita e valida a porta
 get_port() {
-    clear
+    #clear
     local port
     read -r port
     port=${port:-80} # Porta padrão é 80
@@ -80,7 +82,7 @@ get_port() {
 
 # Solicita o nome da VPN
 get_vpn_name() {
-    clear
+    #clear
     local vpn_name
     read -r vpn_name
 
