@@ -30,14 +30,14 @@ install_revproxy() {
     clear
     if [ ! -f /usr/local/bin/revproxy ]; then
         echo ""
-        echo -e "${amarelo}Instalando revproxy...${sem_cor}"
+        echo -e "${amarelo}Instalando revproxy...${sem_cor}" && sleep 1
         wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
         chmod +x /usr/local/bin/revproxy
         echo -e "${verde}revproxy instalado com sucesso!${sem_cor} Para executar use o comando ${rosa}revproxy${sem_cor}"
         revproxy_installed=true
         echo ""
     else
-        echo -e "${azul}/usr/local/bin/revproxy já está instalado.${sem_cor}"
+        echo -e "${azul}RevProxy já está instalado.${sem_cor}"
     fi
 }
 
@@ -56,7 +56,9 @@ check_update() {
         echo -e "${verde}Script atualizado para a versão $remote_version. Por favor, execute-o novamente.${sem_cor}"
         exit 0
     else
-        echo -e "${verde}Você já está na versão mais recente ($local_version).${sem_cor}"
+        echo ""
+        echo -e "${verde}Você já está na versão mais recente ($local_version)${sem_cor}"
+        echo ""
     fi
 }
 
@@ -163,7 +165,7 @@ run_proxy() {
     echo "Solicitando nome da VPN..."
     local vpn_name=$(get_vpn_name)
     if [ $? -ne 0 ]; then
-        echo -e "${vermelha}Erro ao obter o nome da VPN.${sem_cor}"
+        echo -e "${vermelha}Erro ao obter o nome da VPN${sem_cor}"
         return
     fi
 
@@ -193,7 +195,7 @@ while true; do
     fi
     echo -e "5. ${azul}Listar portas em execução${sem_cor}"
     echo -e "6. ${rosa}Encerrar processo em uma porta${sem_cor}"
-    echo -e "7. ${azul}Verificar atualizações do script${sem_cor}"
+    echo -e "7. ${amarelo}Verificar atualizações do script${sem_cor}"
     echo -e "0. ${vermelha}Sair${sem_cor}"
     echo ""
     echo -n "Escolha uma opção: "
