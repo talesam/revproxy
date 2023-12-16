@@ -15,12 +15,14 @@ versao="1.2"
 
 # Verifica se o script está sendo executado como root
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${vermelha}Este script deve ser executado como root ou com sudo.${sem_cor}"
-   exit 1
+    echo ""
+    echo -e "${vermelha}Este script deve ser executado como root ou com sudo.${sem_cor}"
+    exit 1
 fi
 
 # Verifica se o arquivo /usr/local/bin/revproxy já existe
 if [ ! -f /usr/local/bin/revproxy ]; then
+    echo ""
     # O arquivo não existe, então prossegue com a instalação
     echo -e "${amarelo}Instalando revproxy...${sem_cor}" && sleep 1
 
