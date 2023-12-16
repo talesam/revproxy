@@ -36,6 +36,7 @@ install_revproxy() {
 
 # Função para verificar e atualizar a versão do script
 check_update() {
+    clear
     remote_version=$(wget -qO- "$remote_version_url")
     if [ "$remote_version" != "$local_version" ]; then
         echo -e "${amarelo}Uma nova versão do script está disponível!${sem_cor}"
