@@ -112,7 +112,6 @@ install_proxy() {
     clear
     echo ""
     echo -e "${verde}Proxy instalado com sucesso!${sem_cor}"
-    echo ""
 }
 
 # Função para restaurar o proxy original
@@ -164,7 +163,8 @@ run_proxy() {
         return
     fi
 
-    echo "Solicitando nome da VPN..."
+    echo ""
+    echo -e "${azul}Digite o nome da VPN:${sem_cor}"
     local vpn_name=$(get_vpn_name)
     if [ $? -ne 0 ]; then
         echo -e "${vermelha}Erro ao obter o nome da VPN${sem_cor}"
