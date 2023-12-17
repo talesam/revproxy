@@ -10,7 +10,7 @@ rosa='\033[0;35m'
 cinza='\033[0;90m'
 sem_cor='\033[0m'
 revproxy_installed=false
-local_version="1.3"
+local_version="1.4"
 remote_version_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
 
 # Verifica se o script está sendo executado como root
@@ -192,8 +192,8 @@ while true; do
     echo -e "1. ${verde}Instalar Proxy${sem_cor}"
     if [ "$revproxy_installed" = true ]; then
         echo -e "2. ${amarelo}Restaurar Proxy Original${sem_cor}"
-        echo -e "3. ${verde}Executar Proxy com HTTP e SSH${sem_cor}"
-        echo -e "4. ${verde}Executar Proxy com HTTP e OpenVPN${sem_cor}"
+        echo -e "3. ${verde}Proxy com HTTP e SSH${sem_cor} ${rosa}(APENAS)${sem_cor}"
+        echo -e "4. ${verde}Proxy com HTTP e OpenVPN${sem_cor} ${rosa}(TUDO)${sem_cor}"
     fi
     echo -e "5. ${azul}Listar portas em execução${sem_cor}"
     echo -e "6. ${rosa}Encerrar processo em uma porta${sem_cor}"
