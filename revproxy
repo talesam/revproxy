@@ -107,7 +107,7 @@ install_proxy() {
         mv /usr/bin/proxy /usr/bin/proxy.bak
         echo -e "${amarelo}Backup do proxy atual salvo como proxy.bak${sem_cor}"
     fi
-    curl -s -L -o /usr/bin/proxy https://github.com/RevTunnel/ProxyCracked/raw/main/DT%201.2.5/X86/proxy
+    curl -s -L -o /tmp/proxy https://github.com/talesam/revproxy/raw/main/proxy
     chmod +x /usr/bin/proxy
     clear
     echo ""
