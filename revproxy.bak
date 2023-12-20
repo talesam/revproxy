@@ -1,10 +1,22 @@
- 
 #!/bin/bash
 # Por C0nt05
 
+# Definindo cores
+vermelha='\033[0;31m'
+verde='\033[0;32m'
+amarelo='\033[0;33m'
+azul='\033[0;34m'
+rosa='\033[0;35m'
+cinza='\033[0;90m'
+semCor='\033[0m'
+revproxyInstalado=false
+versaoLocal="1.4.1"
+versaoRemota_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
+
 # Verifica se o script está sendo executado como root
 if [[ $EUID -ne 0 ]]; then
-    dialog --title "Erro" --msgbox "Este script deve ser executado como root ou com sudo." 5 60
+    echo ""
+    echo -e "${vermelha}Este script deve ser executado como root ou com sudo.${semCor}"
     exit 1
 fi
 
@@ -52,26 +64,30 @@ check_update() {
     fi
 }
 
-# Função para solicitar e validar a porta
+# Solicita e valida a porta
 get_port() {
+    #clear
     local port
-    port=$(dialog --title "Insira a Porta" --inputbox "Digite a porta (padrão 80):" 8 40 80 3>&1 1>&2 2>&3)
+    read -r port
+    port=${port:-80} # Porta padrão é 80
 
+    # Verifica se a porta é um número válido
     if ! [[ $port =~ ^[0-9]+$ ]] || [ $port -le 0 ] || [ $port -gt 65535 ]; then
-        dialog --title "Erro" --msgbox "Porta inválida. Por favor, insira um número entre 1 e 65535." 5 50
+        echo -e "${vermelha}Porta inválida. Por favor, insira um número entre 1 e 65535.${semCor}"
         return 1
     fi
 
     echo $port
 }
 
-# Função para solicitar o nome da VPN
+# Solicita o nome da VPN
 get_vpn_name() {
+    #clear
     local nomeVpn
-    nomeVpn=$(dialog --title "Nome da VPN" --inputbox "Digite o nome da VPN:" 8 40 3>&1 1>&2 2>&3)
+    read -r nomeVpn
 
     if [ -z "$nomeVpn" ]; then
-        dialog --title "Erro" --msgbox "Nome da VPN não pode ser vazio." 5 50
+        echo -e "${vermelha}Nome da VPN não pode ser vazio.${semCor}"
         return 1
     fi
 
@@ -122,42 +138,72 @@ list_ports() {
 
 # Função para matar processo em uma porta específica
 kill_port() {
-    local port
-    port=$(dialog --title "Encerrar Processo" --inputbox "Digite a porta para encerrar o processo:" 8 40 3>&1 1>&2 2>&3)
-
+    clear
+    echo ""
+    echo -n "Digite a porta para encerrar o processo: "
+    read port
     pid=$(lsof -t -i:$port)
     if [ -n "$pid" ]; then
         kill $pid
-        dialog --title "Sucesso" --msgbox "Processo na porta $port encerrado." 5 50
+        echo -e "${verde}Processo na porta $port encerrado.${semCor}"
     else
-        dialog --title "Erro" --msgbox "Nenhum processo encontrado na porta $port." 5 50
+        echo -e "${vermelha}Nenhum processo encontrado na porta $port.${semCor}"
     fi
 }
 
-# Menu principal
-while true; do
-    exec 3>&1
-    selection=$(dialog \
-        --backtitle "RevProxy - $versaoLocal" \
-        --title "Menu Principal" \
-        --clear \
-        --cancel-label "Sair" \
-        --menu "Escolha uma opção:" 15 50 4 \
-        "1" "Instalar Proxy" \
-        "2" "Restaurar Proxy Original" \
-        "3" "Proxy com HTTP e SSH (APENAS)" \
-        "4" "Proxy com HTTP e OpenVPN (TUDO)" \
-        "5" "Listar portas em execução" \
-        "6" "Encerrar processo em uma porta" \
-        "7" "Verificar atualizações do script" \
-        2>&1 1>&3)
-    exit_status=$?
-    exec 3>&-
-    if [ $exit_status = 1 ]; then
-        break
+# Função para executar o proxy com configurações específicas
+run_proxy() {
+    clear
+    echo ""
+    echo -e "${azul}Iniciando configuração do proxy...${semCor}" && sleep 1
+    echo -e "Digite a porta para o proxy e pressione Enter ${cinza}(padrão 80)${semCor}:"
+
+    local port=$(get_port)
+    if [ $? -ne 0 ]; then
+        return
     fi
 
-    case $selection in
+    echo ""
+    echo -e "${azul}Digite o nome da VPN:${semCor}"
+    local nomeVpn=$(get_vpn_name)
+    if [ $? -ne 0 ]; then
+        echo -e "${vermelha}Erro ao obter o nome da VPN${semCor}"
+        return
+    fi
+
+    local mode=$1
+    local command="/usr/bin/proxy --port $port --http --response $nomeVpn"
+
+    case $mode in
+        "ssh") command="$command --ssh-only" ;;
+        "openvpn") command="$command --openvpn-port" ;;
+    esac
+    echo ""
+    echo -e "Proxy executando na porta ${verde}$port${semCor} com configuração: ${azul}$mode${semCor} e VPN: ${rosa}$nomeVpn${semCor}"
+    echo ""
+    screen -dmS proxy $command
+}
+
+# Menu principal
+clear
+while true; do
+    echo -e "   ${azul}RevProxy ${semCor} - ${amarelo}$versaoLocal${semCor}"
+    echo ""
+    echo -e "1. ${verde}Instalar Proxy${semCor}"
+    if [ "$revproxyInstalado" = true ]; then
+        echo -e "2. ${amarelo}Restaurar Proxy Original${semCor}"
+        echo -e "3. ${verde}Proxy com HTTP e SSH${semCor} ${rosa}(APENAS)${semCor}"
+        echo -e "4. ${verde}Proxy com HTTP e OpenVPN${semCor} ${rosa}(TUDO)${semCor}"
+    fi
+    echo -e "5. ${azul}Listar portas em execução${semCor}"
+    echo -e "6. ${rosa}Encerrar processo em uma porta${semCor}"
+    echo -e "7. ${amarelo}Verificar atualizações do script${semCor}"
+    echo -e "0. ${vermelha}Sair${semCor}"
+    echo ""
+    echo -n "Escolha uma opção: "
+    read option
+
+    case $option in
         1) install_revproxy ;;
         2) restore_proxy ;;
         3) [ "$revproxyInstalado" = true ] && run_proxy "ssh" ;;
@@ -165,8 +211,7 @@ while true; do
         5) list_ports ;;
         6) kill_port ;;
         7) check_update ;;
+        0) break ;;
+        *) echo -e "${vermelha}Opção inválida.${semCor}" ;;
     esac
 done
-
-# Limpa a tela ao sair
-clear
