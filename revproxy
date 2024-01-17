@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.2"
+versaoLocal="1.6.3"
 revproxyInstalado=false
 versaoRemota_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
 
@@ -114,11 +114,15 @@ install_revproxy() {
         wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
         chmod +x /usr/local/bin/revproxy
 
+        # Baixa e instala o script agendarproxy
+        wget -q -O /usr/local/bin/agendarproxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
+        chmod +x /usr/local/bin/agendarproxy
+
         # Chama a função para instalar o proxy
         install_proxy
         revproxyInstalado=true
 
-        dialog --title "Instalação" --msgbox "revproxy instalado com sucesso! Para executar use o comando 'revproxy'" 6 50
+        dialog --title "Instalação" --msgbox "revproxy e agendarproxy instalados com sucesso! Para executar use o comando 'revproxy'" 6 50
     else
         dialog --title "Informação" --msgbox "RevProxy já está instalado." 6 50
     fi
@@ -254,13 +258,17 @@ run_proxy() {
 # Função para agendar reinício do proxy
 schedule_restart() {
     local hour=$(dialog --title "Agendar Reinício" --inputbox "Digite a hora para reiniciar diariamente (0-23):" 8 40 3>&1 1>&2 2>&3)
+    local nomeVpn=$(get_vpn_name)
+    local port=$(get_port)
 
     if ! [[ $hour =~ ^[0-9]+$ ]] || [ $hour -lt 0 ] || [ $hour -gt 23 ]; then
         dialog --title "Erro" --msgbox "Hora inválida. Por favor, insira um número entre 0 e 23." 6 50
         return 1
     fi
 
-    local cron_entry="$hour * * * * $scriptPath"
+    local scriptPath="/caminho/para/agendarproxy" # Substitua pelo caminho correto
+    local cron_entry="0 $hour * * * $scriptPath --schedule $hour $nomeVpn $port"
+
     local current_cron=$(crontab -l | grep -v "$scriptPath")
 
     # Adiciona a nova entrada ao cron

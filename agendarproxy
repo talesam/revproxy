@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Função para iniciar o proxy
+start_proxy() {
+    /usr/bin/proxy --port $2 --http --response $3 --openvpn-port
+}
+
+# Função para matar o processo na porta especificada
+kill_port() {
+    pid=$(lsof -t -i:$2)
+    if [ -n "$pid" ]; then
+        kill $pid
+    fi
+}
+
+# Função para adicionar ou remover a entrada do cron
+update_cron() {
+    local action=$1
+    local hour=$2
+    local nomeVpn=$3
+    local port=$4
+    local scriptPath="/usr/local/bin/agendarproxy"
+
+    local cron_entry="0 $hour * * * $scriptPath --schedule $hour $nomeVpn $port"
+
+    local current_cron=$(crontab -l | grep -v "$scriptPath")
+
+    if [ "$action" == "add" ]; then
+        # Adiciona a entrada se não estiver presente
+        if ! crontab -l | grep -Fxq "$cron_entry"; then
+            (echo "$current_cron"; echo "$cron_entry") | crontab -
+        fi
+    elif [ "$action" == "remove" ]; then
+        # Remove a entrada
+        echo "$current_cron" | crontab -
+    fi
+}
+
+# Verifica argumentos para adicionar ou remover do cron
+case $1 in
+    --agendar)
+        hour=$2
+        nomeVpn=$3
+        port=$4
+        kill_port $port
+        start_proxy $port $nomeVpn
+        update_cron add $hour $nomeVpn $port
+        ;;
+    --stop)
+        port=$2
+        kill_port $port
+        update_cron remove
+        ;;
+    *)
+        echo "Uso: $0 [--agendar hora nomeVpn porta | --stop porta]"
+        exit 1
+        ;;
+esac
