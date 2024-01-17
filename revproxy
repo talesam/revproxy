@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.5.3"
+versaoLocal="1.6.5.4"
 pathAgendarProxy="/usr/local/bin/agendarproxy"
 pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
@@ -295,7 +295,7 @@ schedule_restart() {
 # Função para remover agendamento do cron
 remove_schedule() {
     local cron_file="/tmp/cronjobs.txt"
-    crontab -l | grep "$pathAgendarProxy" > "$cron_file"
+    crontab -l | grep "$pathAgendarProxy" | awk '{print $8}' > "$cron_file"
 
     # Verifica se há agendamentos para remover
     if [ ! -s "$cron_file" ]; then
@@ -304,7 +304,10 @@ remove_schedule() {
     fi
 
     # Prepara os agendamentos para exibição
-    local cron_list=$(awk '{print NR " \"" $0 "\" off"}' "$cron_file")
+    local cron_list=""
+    while IFS= read -r line; do
+        cron_list="$cron_list $line $line off "
+    done < "$cron_file"
 
     # Mostra os agendamentos em uma caixa de checklist
     local schedule_to_remove=$(dialog --title "Remover Agendamento" --checklist "Escolha um agendamento para remover:" 15 70 6 $cron_list 3>&1 1>&2 2>&3)
@@ -315,10 +318,9 @@ remove_schedule() {
     fi
 
     # Remove o agendamento selecionado
-    for line in $schedule_to_remove; do
-        sed -i "${line}d" "$cron_file"
+    for schedule in $schedule_to_remove; do
+        crontab -l | grep -v "$schedule" | crontab -
     done
-    cat "$cron_file" | crontab -
 
     dialog --title "Agendamento" --msgbox "Agendamento(s) removido(s)." 6 50
 }
