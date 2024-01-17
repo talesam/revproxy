@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.4"
+versaoLocal="1.6.5"
 pathAgendarProxy="/usr/local/bin/agendarproxy"
 pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
@@ -332,9 +332,9 @@ while true; do
         "1" "Instalar Proxy" \
         "2" "Restaurar Proxy Original" \
         "3" "Configurar Proxy" \
-        "4" "Verificar atualizações do script" \
-        "5" "Agendar reinício do proxy" \
-        "6" "Remover agendamento" \
+        "4" "Agendar reinício do proxy" \
+        "5" "Remover agendamento" \
+        "6" "*Verificar atualizações" \
         2>&1 1>&3)
     exit_status=$?
     exec 3>&-
@@ -346,9 +346,9 @@ while true; do
         1) install_revproxy ;;
         2) restore_proxy ;;
         3) [ "$revproxyInstalado" = true ] && configure_proxy_menu ;;
-        4) check_update ;;
-        5) schedule_restart ;;
-        6) remove_schedule ;;
+        4) schedule_restart ;;
+        5) remove_schedule ;;
+        6) check_update ;;
     esac
 done
 
