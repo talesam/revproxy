@@ -1,8 +1,21 @@
 #!/bin/bash
 
+# Define o caminho do arquivo de log
+logFile="/var/log/agendarproxy.log"
+
+# Função para registrar mensagens no log
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$logFile"
+}
+
 # Função para iniciar o proxy
 start_proxy() {
     /usr/bin/proxy --port $2 --http --response $3 --openvpn-port
+    if [ $? -eq 0 ]; then
+        log_message "Proxy iniciado com sucesso na porta $2 com a configuração $3."
+    else
+        log_message "Falha ao iniciar o proxy na porta $2."
+    fi
 }
 
 # Função para matar o processo na porta especificada
@@ -10,6 +23,9 @@ kill_port() {
     pid=$(lsof -t -i:$2)
     if [ -n "$pid" ]; then
         kill $pid
+        log_message "Processo na porta $2 encerrado."
+    else
+        log_message "Nenhum processo encontrado na porta $2 para encerrar."
     fi
 }
 
@@ -17,11 +33,11 @@ kill_port() {
 update_cron() {
     local action=$1
     local hour=$2
-    local nomeVpn=$3
+    local scheduleName=$3
     local port=$4
     local scriptPath="/usr/local/bin/agendarproxy"
 
-    local cron_entry="0 $hour * * * $scriptPath --schedule $hour \"$nomeVpn\" $port"
+    local cron_entry="0 $hour * * * $scriptPath --schedule $hour \"$scheduleName\" $port"
 
     local current_cron=$(crontab -l | grep -v "$scriptPath")
 
@@ -40,11 +56,11 @@ update_cron() {
 case $1 in
     --agendar)
         hour=$2
-        nomeVpn=$3
+        scheduleName=$3
         port=$4
         kill_port $port
-        start_proxy $port $nomeVpn
-        update_cron add $hour $nomeVpn $port
+        start_proxy $port $scheduleName
+        update_cron add $hour $scheduleName $port
         ;;
     --stop)
         port=$2
@@ -52,7 +68,7 @@ case $1 in
         update_cron remove
         ;;
     *)
-        echo "Uso: $0 [--agendar hora nomeVpn porta | --stop porta]"
+        echo "Uso: $0 [--agendar hora nomeAgendamento porta | --stop porta]"
         exit 1
         ;;
 esac

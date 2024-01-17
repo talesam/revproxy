@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.5.2"
+versaoLocal="1.6.5.3"
 pathAgendarProxy="/usr/local/bin/agendarproxy"
 pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
@@ -269,7 +269,7 @@ run_proxy() {
 # Função para agendar reinício do proxy
 schedule_restart() {
     local hour=$(dialog --title "Agendar Reinício" --inputbox "Digite a hora para reiniciar diariamente (0-23):" 8 40 3>&1 1>&2 2>&3)
-    local nomeVpn=$(get_vpn_name)
+    local scheduleName=$(dialog --title "Nome do Agendamento" --inputbox "Digite um nome para o agendamento (sem espaços):" 8 40 3>&1 1>&2 2>&3)
     local port=$(get_port)
 
     if ! [[ $hour =~ ^[0-9]+$ ]] || [ $hour -lt 0 ] || [ $hour -gt 23 ]; then
@@ -277,14 +277,19 @@ schedule_restart() {
         return 1
     fi
 
-    local cron_entry="0 $hour * * * $pathAgendarProxy --schedule $hour $nomeVpn $port"
+    if [[ $scheduleName =~ \  ]]; then
+        dialog --title "Erro" --msgbox "Nome do agendamento inválido. Não deve conter espaços." 6 50
+        return 1
+    fi
+
+    local cron_entry="0 $hour * * * $pathAgendarProxy --schedule $hour $scheduleName $port"
 
     local current_cron=$(crontab -l | grep -v "$pathAgendarProxy")
 
     # Adiciona a nova entrada ao cron
     (echo "$current_cron"; echo "$cron_entry") | crontab -
 
-    dialog --title "Agendamento" --msgbox "Reinício agendado para todos os dias às $hour:00." 6 50
+    dialog --title "Agendamento" --msgbox "Reinício agendado para todos os dias às $hour:00 com o nome $scheduleName." 6 50
 }
 
 # Função para remover agendamento do cron
@@ -298,8 +303,11 @@ remove_schedule() {
         return
     fi
 
-    # Mostra os agendamentos em uma caixa de seleção
-    local schedule_to_remove=$(dialog --title "Remover Agendamento" --menu "Escolha um agendamento para remover:" 15 60 6 $(cat "$cron_file" | nl -w1 -s ' ') 3>&1 1>&2 2>&3)
+    # Prepara os agendamentos para exibição
+    local cron_list=$(awk '{print NR " \"" $0 "\" off"}' "$cron_file")
+
+    # Mostra os agendamentos em uma caixa de checklist
+    local schedule_to_remove=$(dialog --title "Remover Agendamento" --checklist "Escolha um agendamento para remover:" 15 70 6 $cron_list 3>&1 1>&2 2>&3)
 
     # Verifica se o usuário cancelou a operação
     if [ -z "$schedule_to_remove" ]; then
@@ -307,10 +315,12 @@ remove_schedule() {
     fi
 
     # Remove o agendamento selecionado
-    local new_cron=$(sed "${schedule_to_remove}d" "$cron_file")
-    echo "$new_cron" | crontab -
+    for line in $schedule_to_remove; do
+        sed -i "${line}d" "$cron_file"
+    done
+    cat "$cron_file" | crontab -
 
-    dialog --title "Agendamento" --msgbox "Agendamento removido." 6 50
+    dialog --title "Agendamento" --msgbox "Agendamento(s) removido(s)." 6 50
 }
 
 # Função para o submenu de configuração do proxy
