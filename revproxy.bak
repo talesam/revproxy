@@ -1,45 +1,132 @@
 #!/bin/bash
 # Por C0nt05
 
-# Definindo cores
-vermelha='\033[0;31m'
-verde='\033[0;32m'
-amarelo='\033[0;33m'
-azul='\033[0;34m'
-rosa='\033[0;35m'
-cinza='\033[0;90m'
-semCor='\033[0m'
+# Caminho para o arquivo .dialogrc personalizado
+dialogRcFile="$HOME/.dialogrc"
+
+# Função para limpar ao sair
+cleanup() {
+    rm -f "$dialogRcFile"
+}
+
+# Configura o trap para chamar a função cleanup ao sair
+trap cleanup EXIT
+
+# Verifica se o arquivo .dialogrc existe
+if [ ! -f "$dialogRcFile" ]; then
+    # Cria o arquivo .dialogrc com configurações de cores padrão
+    cat > "$dialogRcFile" << 'EOF'
+screen_color = (yellow,black,off)
+dialog_color = (black,black,on)
+title_color = (yellow,black,off)
+border_color = dialog_color
+shadow_color = (white,black,on)
+
+button_inactive_color = dialog_color
+button_key_inactive_color = dialog_color
+button_label_inactive_color = dialog_color
+
+button_active_color = (black,yellow,off)
+button_key_active_color = button_active_color
+button_label_active_color = (black,yellow,off)
+tag_key_selected_color = (black,yellow,off)
+item_selected_color = tag_key_selected_color
+
+form_text_color = (yellow,green,on)
+form_item_readonly_color = (green,yellow,on)
+
+itemhelp_color = (white,blue,off)
+
+inputbox_color = dialog_color
+inputbox_border_color = dialog_color
+searchbox_color = dialog_color
+searchbox_title_color = title_color
+searchbox_border_color = border_color
+position_indicator_color = title_color
+menubox_color = dialog_color
+menubox_border_color = border_color
+item_color = dialog_color
+tag_color = title_color
+tag_selected_color = button_label_active_color
+tag_key_color = button_key_inactive_color
+check_color = dialog_color
+check_selected_color = button_active_color
+uarrow_color = screen_color
+darrow_color = screen_color
+form_active_text_color = button_active_color
+gauge_color = title_color
+border2_color = dialog_color
+searchbox_border2_color = dialog_color
+menubox_border2_color = dialog_color
+
+#aspect = 0
+separate_widget = ""
+tab_len = 0
+visit_items = off
+use_shadow = off
+use_colors = on
+EOF
+fi
+
+# Exporta a variável DIALOGRC
+export DIALOGRC="$dialogRcFile"
+
+versaoLocal="1.6.5"
+pathAgendarProxy="/usr/local/bin/agendarproxy"
+pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
-versaoLocal="1.4.1"
 versaoRemota_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
 
 # Verifica se o script está sendo executado como root
 if [[ $EUID -ne 0 ]]; then
-    echo ""
-    echo -e "${vermelha}Este script deve ser executado como root ou com sudo.${semCor}"
+    dialog --title "Erro" --msgbox "Este script deve ser executado como root ou com sudo." 5 60
     exit 1
 fi
 
-# Verifica se o arquivo /usr/local/bin/revproxy já existe
-if [ -f /usr/local/bin/revproxy ]; then
+# Verifica se o dialog está instalado
+if ! command -v dialog &> /dev/null; then
+    echo "O pacote 'dialog' não está instalado. Tentando instalar..."
+
+    # Verifica se o script está sendo executado como root
+    if [[ $EUID -ne 0 ]]; then
+        echo "Você precisa ser root para instalar o 'dialog'. Por favor, execute o script como root ou use sudo."
+        exit 1
+    fi
+
+    # Tenta instalar o dialog
+    apt-get update && apt-get install dialog -y
+
+    # Verifica se a instalação foi bem-sucedida
+    if ! command -v dialog &> /dev/null; then
+        echo "Falha ao instalar o 'dialog'. Por favor, instale manualmente e tente novamente."
+        exit 1
+    fi
+fi
+
+# Verifica se o arquivo $pathRevProxy já existe
+if [ -f $pathRevProxy ]; then
     revproxyInstalado=true
 fi
 
-# Função para instalar/atualizar revproxy
 install_revproxy() {
     clear
-    if [ ! -f /usr/local/bin/revproxy ]; then
-        echo ""
-        echo -e "${amarelo}Instalando revproxy...${semCor}" && sleep 1
-        wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
-        chmod +x /usr/local/bin/revproxy
-        echo -e "${verde}revproxy instalado com sucesso!${semCor} Para executar use o comando ${rosa}revproxy${semCor}"
-        
-        install_proxy # Chama a função para instalar o proxy
+    if [ ! -f $pathRevProxy ]; then
+        dialog --title "Instalação" --infobox "Instalando revproxy..." 6 50
+        sleep 1
+        wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
+        chmod +x $pathRevProxy
+
+        # Baixa e instala o script agendarproxy
+        wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
+        chmod +x $pathAgendarProxy
+
+        # Chama a função para instalar o proxy
+        install_proxy
         revproxyInstalado=true
-        echo ""
+
+        dialog --title "Instalação" --msgbox "revproxy e agendarproxy instalados com sucesso! Para executar use o comando 'revproxy'" 6 50
     else
-        echo -e "${azul}RevProxy já está instalado.${semCor}"
+        dialog --title "Informação" --msgbox "RevProxy já está instalado." 6 50
     fi
 }
 
@@ -48,46 +135,43 @@ check_update() {
     clear
     versaoRemota=$(wget -qO- "$versaoRemota_url")
     if [ "$versaoRemota" != "$versaoLocal" ]; then
-        echo -e "${amarelo}Uma nova versão do script está disponível!${semCor}"
-        echo -e "${amarelo}Versão Atual: $versaoLocal, Nova Versão: $versaoRemota${semCor}"
-
-        # Implementação da lógica de atualização
-        echo -e "${amarelo}Atualizando script...${semCor}"
-        wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
-        chmod +x /usr/local/bin/revproxy
-        echo -e "${verde}Script atualizado para a versão $versaoRemota. Por favor, execute-o novamente.${semCor}"
-        exit 0
+        dialog --title "Atualização Disponível" --yesno "Versão Atual: $versaoLocal\nNova Versão: $versaoRemota\nDeseja atualizar o script?" 7 50
+        response=$?
+        if [ $response -eq 0 ]; then
+            wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
+            chmod +x $pathRevProxy
+            # Baixa e instala o script agendarproxy
+            wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
+            chmod +x $pathAgendarProxy
+            
+            dialog --title "Atualização" --msgbox "Script atualizado para a versão $versaoRemota. Por favor, execute-o novamente." 6 50
+            exit 0
+        fi
     else
-        echo ""
-        echo -e "${verde}Você já está na versão mais recente ($versaoLocal)${semCor}"
-        echo ""
+        dialog --title "Atualização" --msgbox "Você já está na versão mais recente ($versaoLocal)." 6 50
     fi
 }
 
-# Solicita e valida a porta
+# Função para solicitar e validar a porta
 get_port() {
-    #clear
     local port
-    read -r port
-    port=${port:-80} # Porta padrão é 80
+    port=$(dialog --title "Insira a Porta" --inputbox "Digite a porta (padrão 80):" 8 40 80 3>&1 1>&2 2>&3)
 
-    # Verifica se a porta é um número válido
     if ! [[ $port =~ ^[0-9]+$ ]] || [ $port -le 0 ] || [ $port -gt 65535 ]; then
-        echo -e "${vermelha}Porta inválida. Por favor, insira um número entre 1 e 65535.${semCor}"
+        dialog --title "Erro" --msgbox "Porta inválida. Por favor, insira um número entre 1 e 65535." 6 50
         return 1
     fi
 
     echo $port
 }
 
-# Solicita o nome da VPN
+# Função para solicitar o nome da VPN
 get_vpn_name() {
-    #clear
     local nomeVpn
-    read -r nomeVpn
+    nomeVpn=$(dialog --title "Nome da VPN" --inputbox "Digite o nome da VPN:" 8 40 3>&1 1>&2 2>&3)
 
     if [ -z "$nomeVpn" ]; then
-        echo -e "${vermelha}Nome da VPN não pode ser vazio.${semCor}"
+        dialog --title "Erro" --msgbox "Nome da VPN não pode ser vazio." 6 50
         return 1
     fi
 
@@ -97,21 +181,19 @@ get_vpn_name() {
 # Função para instalar o proxy
 install_proxy() {
     clear
-    echo ""
     if [ -f /usr/bin/proxy.bak ]; then
-        echo -e " ${azul}*${semCor} ${amarelo}Um backup do proxy já existe. Instalação cancelada para evitar sobrescrever o backup.${semCor}"
-        echo ""
+        dialog --title "Instalação Cancelada" --msgbox "Um backup do proxy já existe.\nInstalação cancelada para evitar sobrescrever o backup." 7 50
         return
     fi
+
     if [ -f /usr/bin/proxy ]; then
         mv /usr/bin/proxy /usr/bin/proxy.bak
-        echo -e "${amarelo}Backup do proxy atual salvo como proxy.bak${semCor}"
+        dialog --title "Backup" --msgbox "Backup do proxy atual salvo como proxy.bak" 6 50
     fi
-    curl -s -L -o /tmp/proxy https://github.com/talesam/revproxy/raw/main/proxy
+
+    curl -s -L -o /usr/bin/proxy https://github.com/talesam/revproxy/raw/main/proxy
     chmod +x /usr/bin/proxy
-    clear
-    echo ""
-    echo -e "${verde}Proxy instalado com sucesso!${semCor}"
+    dialog --title "Instalação" --msgbox "Proxy instalado com sucesso!" 6 50
 }
 
 # Função para restaurar o proxy original
@@ -120,54 +202,48 @@ restore_proxy() {
     echo ""
     if [ -f /usr/bin/proxy.bak ]; then
         mv /usr/bin/proxy.bak /usr/bin/proxy
-        echo -e " ${verde}*${semCor} Proxy original restaurado com sucesso."
-        echo ""
+        dialog --title "Restauração" --msgbox "Proxy original restaurado com sucesso." 6 50
         revproxyInstalado=false
     else
-        echo -e "${vermelha}Backup do proxy não encontrado.${semCor}"
-        echo ""
+        dialog --title "Erro" --msgbox "Backup do proxy não encontrado." 6 50
     fi
 }
 
-# Função para listar portas em execução
 list_ports() {
-    clear
-    echo -e "${amarelo}Portas em execução:${semCor}"
-    netstat -tuln | grep LISTEN
+    local ports=$(netstat -tuln | grep LISTEN)
+    echo "$ports" > /tmp/port_list.txt
+    dialog --title "Portas em Execução" --textbox /tmp/port_list.txt 20 70
+    rm /tmp/port_list.txt
 }
 
 # Função para matar processo em uma porta específica
 kill_port() {
-    clear
-    echo ""
-    echo -n "Digite a porta para encerrar o processo: "
-    read port
+    local port
+    port=$(dialog --title "Encerrar Processo" --inputbox "Digite a porta para encerrar o processo:" 8 40 3>&1 1>&2 2>&3)
+
     pid=$(lsof -t -i:$port)
     if [ -n "$pid" ]; then
         kill $pid
-        echo -e "${verde}Processo na porta $port encerrado.${semCor}"
+        dialog --title "Sucesso" --msgbox "Processo na porta $port encerrado." 6 50
     else
-        echo -e "${vermelha}Nenhum processo encontrado na porta $port.${semCor}"
+        dialog --title "Erro" --msgbox "Nenhum processo encontrado na porta $port." 6 50
     fi
 }
 
-# Função para executar o proxy com configurações específicas
+# Função para configurar o proxy
 run_proxy() {
-    clear
-    echo ""
-    echo -e "${azul}Iniciando configuração do proxy...${semCor}" && sleep 1
-    echo -e "Digite a porta para o proxy e pressione Enter ${cinza}(padrão 80)${semCor}:"
+    dialog --title "Configuração do Proxy" --infobox "Iniciando configuração do proxy..." 6 50
+    sleep 1
 
     local port=$(get_port)
     if [ $? -ne 0 ]; then
+        dialog --title "Erro" --msgbox "Erro ao obter a porta." 6 50
         return
     fi
 
-    echo ""
-    echo -e "${azul}Digite o nome da VPN:${semCor}"
     local nomeVpn=$(get_vpn_name)
     if [ $? -ne 0 ]; then
-        echo -e "${vermelha}Erro ao obter o nome da VPN${semCor}"
+        dialog --title "Erro" --msgbox "Erro ao obter o nome da VPN." 6 50
         return
     fi
 
@@ -177,41 +253,103 @@ run_proxy() {
     case $mode in
         "ssh") command="$command --ssh-only" ;;
         "openvpn") command="$command --openvpn-port" ;;
+        "v2ray") command="$command --v2ray-port" ;;
     esac
-    echo ""
-    echo -e "Proxy executando na porta ${verde}$port${semCor} com configuração: ${azul}$mode${semCor} e VPN: ${rosa}$nomeVpn${semCor}"
-    echo ""
+
+    dialog --title "Executando Proxy" --msgbox "Proxy executando na porta $port com configuração: $mode e VPN: $nomeVpn" 6 50
     screen -dmS proxy $command
 }
 
-# Menu principal
-clear
-while true; do
-    echo -e "   ${azul}RevProxy ${semCor} - ${amarelo}$versaoLocal${semCor}"
-    echo ""
-    echo -e "1. ${verde}Instalar Proxy${semCor}"
-    if [ "$revproxyInstalado" = true ]; then
-        echo -e "2. ${amarelo}Restaurar Proxy Original${semCor}"
-        echo -e "3. ${verde}Proxy com HTTP e SSH${semCor} ${rosa}(APENAS)${semCor}"
-        echo -e "4. ${verde}Proxy com HTTP e OpenVPN${semCor} ${rosa}(TUDO)${semCor}"
-    fi
-    echo -e "5. ${azul}Listar portas em execução${semCor}"
-    echo -e "6. ${rosa}Encerrar processo em uma porta${semCor}"
-    echo -e "7. ${amarelo}Verificar atualizações do script${semCor}"
-    echo -e "0. ${vermelha}Sair${semCor}"
-    echo ""
-    echo -n "Escolha uma opção: "
-    read option
+# Função para agendar reinício do proxy
+schedule_restart() {
+    local hour=$(dialog --title "Agendar Reinício" --inputbox "Digite a hora para reiniciar diariamente (0-23):" 8 40 3>&1 1>&2 2>&3)
+    local nomeVpn=$(get_vpn_name)
+    local port=$(get_port)
 
-    case $option in
+    if ! [[ $hour =~ ^[0-9]+$ ]] || [ $hour -lt 0 ] || [ $hour -gt 23 ]; then
+        dialog --title "Erro" --msgbox "Hora inválida. Por favor, insira um número entre 0 e 23." 6 50
+        return 1
+    fi
+
+    local cron_entry="0 $hour * * * $pathAgendarProxy --schedule $hour $nomeVpn $port"
+
+    local current_cron=$(crontab -l | grep -v "$pathAgendarProxy")
+
+    # Adiciona a nova entrada ao cron
+    (echo "$current_cron"; echo "$cron_entry") | crontab -
+
+    dialog --title "Agendamento" --msgbox "Reinício agendado para todos os dias às $hour:00." 6 50
+}
+
+# Função para remover agendamento do cron
+remove_schedule() {
+    local current_cron=$(crontab -l | grep -v "$pathAgendarProxy")
+    echo "$current_cron" | crontab -
+    dialog --title "Agendamento" --msgbox "Agendamento removido." 6 50
+}
+
+# Função para o submenu de configuração do proxy
+configure_proxy_menu() {
+    while true; do
+        exec 3>&1
+        proxy_selection=$(dialog \
+            --backtitle "RevProxy - $versaoLocal" \
+            --title "Configurar Proxy" \
+            --cancel-label "Voltar" \
+            --menu "Escolha uma opção:" 12 53 5 \
+            "1" "Proxy com HTTP SSH (Ignora: OpenVPN e V2ray)" \
+            "2" "Proxy com HTTP e OpenVPN (Pega tudo)" \
+            "3" "Proxy com HTTP e V2Ray" \
+            "4" "Listar portas em execução" \
+            "5" "Encerrar processo em uma porta" \
+            2>&1 1>&3)
+        proxy_exit_status=$?
+        exec 3>&-
+        if [ $proxy_exit_status = 1 ]; then
+            break
+        fi
+
+        case $proxy_selection in
+            1) run_proxy "ssh" ;;
+            2) run_proxy "openvpn" ;;
+            3) run_proxy "v2ray" ;;
+            4) list_ports ;;
+            5) kill_port ;;
+        esac
+    done
+}
+
+# Menu principal
+while true; do
+    exec 3>&1
+    selection=$(dialog \
+        --backtitle "RevProxy - $versaoLocal" \
+        --title "Menu Principal" \
+        --clear \
+        --cancel-label "Sair" \
+        --menu "Escolha uma opção:" 13 42 6 \
+        "1" "Instalar Proxy" \
+        "2" "Restaurar Proxy Original" \
+        "3" "Configurar Proxy" \
+        "4" "Agendar reinício do proxy" \
+        "5" "Remover agendamento" \
+        "6" "*Verificar atualizações" \
+        2>&1 1>&3)
+    exit_status=$?
+    exec 3>&-
+    if [ $exit_status = 1 ]; then
+        break
+    fi
+
+    case $selection in
         1) install_revproxy ;;
         2) restore_proxy ;;
-        3) [ "$revproxyInstalado" = true ] && run_proxy "ssh" ;;
-        4) [ "$revproxyInstalado" = true ] && run_proxy "openvpn" ;;
-        5) list_ports ;;
-        6) kill_port ;;
-        7) check_update ;;
-        0) break ;;
-        *) echo -e "${vermelha}Opção inválida.${semCor}" ;;
+        3) [ "$revproxyInstalado" = true ] && configure_proxy_menu ;;
+        4) schedule_restart ;;
+        5) remove_schedule ;;
+        6) check_update ;;
     esac
 done
+
+# Limpa a tela ao sair
+clear

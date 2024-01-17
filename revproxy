@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.5"
+versaoLocal="1.6.5.1"
 pathAgendarProxy="/usr/local/bin/agendarproxy"
 pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
@@ -132,26 +132,31 @@ install_revproxy() {
 
 # Função para verificar e atualizar a versão do script
 check_update() {
+    local logFile="/tmp/check_update.log"
+    echo "Iniciando a verificação de atualização..." > "$logFile"
     clear
     versaoRemota=$(wget -qO- "$versaoRemota_url")
     if [ "$versaoRemota" != "$versaoLocal" ]; then
         dialog --title "Atualização Disponível" --yesno "Versão Atual: $versaoLocal\nNova Versão: $versaoRemota\nDeseja atualizar o script?" 7 50
         response=$?
         if [ $response -eq 0 ]; then
-            wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
-            chmod +x $pathRevProxy
-            # Baixa e instala o script agendarproxy
-            wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
-            chmod +x $pathAgendarProxy
-            
+            echo "Atualizando revproxy..." >> "$logFile"
+            wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy 2>> "$logFile"
+            chmod +x $pathRevProxy 2>> "$logFile"
+
+            echo "Atualizando agendarproxy..." >> "$logFile"
+            wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy 2>> "$logFile"
+            chmod +x $pathAgendarProxy 2>> "$logFile"
+
             dialog --title "Atualização" --msgbox "Script atualizado para a versão $versaoRemota. Por favor, execute-o novamente." 6 50
+            echo "Atualização concluída." >> "$logFile"
             exit 0
         fi
     else
         dialog --title "Atualização" --msgbox "Você já está na versão mais recente ($versaoLocal)." 6 50
     fi
+    echo "Nenhuma atualização necessária." >> "$logFile"
 }
-
 
 # Função para solicitar e validar a porta
 get_port() {
