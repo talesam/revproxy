@@ -71,7 +71,9 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.3"
+versaoLocal="1.6.4"
+pathAgendarProxy="/usr/local/bin/agendarproxy"
+pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
 versaoRemota_url="https://raw.githubusercontent.com/talesam/revproxy/main/versao.txt"
 
@@ -101,22 +103,22 @@ if ! command -v dialog &> /dev/null; then
     fi
 fi
 
-# Verifica se o arquivo /usr/local/bin/revproxy já existe
-if [ -f /usr/local/bin/revproxy ]; then
+# Verifica se o arquivo $pathRevProxy já existe
+if [ -f $pathRevProxy ]; then
     revproxyInstalado=true
 fi
 
 install_revproxy() {
     clear
-    if [ ! -f /usr/local/bin/revproxy ]; then
+    if [ ! -f $pathRevProxy ]; then
         dialog --title "Instalação" --infobox "Instalando revproxy..." 6 50
         sleep 1
-        wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
-        chmod +x /usr/local/bin/revproxy
+        wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
+        chmod +x $pathRevProxy
 
         # Baixa e instala o script agendarproxy
-        wget -q -O /usr/local/bin/agendarproxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
-        chmod +x /usr/local/bin/agendarproxy
+        wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
+        chmod +x $pathAgendarProxy
 
         # Chama a função para instalar o proxy
         install_proxy
@@ -136,8 +138,12 @@ check_update() {
         dialog --title "Atualização Disponível" --yesno "Versão Atual: $versaoLocal\nNova Versão: $versaoRemota\nDeseja atualizar o script?" 7 50
         response=$?
         if [ $response -eq 0 ]; then
-            wget -q -O /usr/local/bin/revproxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
-            chmod +x /usr/local/bin/revproxy
+            wget -q -O $pathRevProxy https://raw.githubusercontent.com/talesam/revproxy/main/revproxy
+            chmod +x $pathRevProxy
+            # Baixa e instala o script agendarproxy
+            wget -q -O $pathAgendarProxy https://raw.githubusercontent.com/talesam/revproxy/main/agendarproxy
+            chmod +x $pathAgendarProxy
+            
             dialog --title "Atualização" --msgbox "Script atualizado para a versão $versaoRemota. Por favor, execute-o novamente." 6 50
             exit 0
         fi
@@ -266,10 +272,9 @@ schedule_restart() {
         return 1
     fi
 
-    local scriptPath="/caminho/para/agendarproxy" # Substitua pelo caminho correto
-    local cron_entry="0 $hour * * * $scriptPath --schedule $hour $nomeVpn $port"
+    local cron_entry="0 $hour * * * $pathAgendarProxy --schedule $hour $nomeVpn $port"
 
-    local current_cron=$(crontab -l | grep -v "$scriptPath")
+    local current_cron=$(crontab -l | grep -v "$pathAgendarProxy")
 
     # Adiciona a nova entrada ao cron
     (echo "$current_cron"; echo "$cron_entry") | crontab -
@@ -279,7 +284,7 @@ schedule_restart() {
 
 # Função para remover agendamento do cron
 remove_schedule() {
-    local current_cron=$(crontab -l | grep -v "$scriptPath")
+    local current_cron=$(crontab -l | grep -v "$pathAgendarProxy")
     echo "$current_cron" | crontab -
     dialog --title "Agendamento" --msgbox "Agendamento removido." 6 50
 }
