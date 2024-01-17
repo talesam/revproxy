@@ -71,7 +71,7 @@ fi
 # Exporta a variável DIALOGRC
 export DIALOGRC="$dialogRcFile"
 
-versaoLocal="1.6.5.5"
+versaoLocal="1.6.5.6"
 pathAgendarProxy="/usr/local/bin/agendarproxy"
 pathRevProxy="/usr/local/bin/revproxy"
 revproxyInstalado=false
@@ -218,7 +218,7 @@ restore_proxy() {
 list_ports() {
     local ports=$(netstat -tuln | grep LISTEN)
     echo "$ports" > /tmp/port_list.txt
-    dialog --title "Portas em Execução" --textbox /tmp/port_list.txt 20 70
+    dialog --title "Portas em Execução" --textbox /tmp/port_list.txt 20 60
     rm /tmp/port_list.txt
 }
 
@@ -295,7 +295,7 @@ schedule_restart() {
 # Função para remover agendamento do cron
 remove_schedule() {
     local cron_file="/tmp/cronjobs.txt"
-    crontab -l | grep "$pathAgendarProxy" | awk -F '--schedule ' '{print $2}' | cut -d ' ' -f 1 > "$cron_file"
+    crontab -l | grep "$pathAgendarProxy" > "$cron_file"
 
     # Verifica se há agendamentos para remover
     if [ ! -s "$cron_file" ]; then
@@ -305,12 +305,15 @@ remove_schedule() {
 
     # Prepara os agendamentos para exibição
     local cron_list=""
+    local line_number=1
     while IFS= read -r line; do
-        cron_list="$cron_list $line $line off "
+        local vpn_name=$(echo "$line" | awk -F '--schedule ' '{print $2}' | awk '{print $2}')
+        cron_list="$cron_list $line_number \"$vpn_name\" off "
+        ((line_number++))
     done < "$cron_file"
 
     # Mostra os agendamentos em uma caixa de checklist
-    local schedule_to_remove=$(dialog --title "Remover Agendamento" --checklist "Escolha um agendamento para remover:" 15 50 6 $cron_list 3>&1 1>&2 2>&3)
+    local schedule_to_remove=$(dialog --title "Remover Agendamento" --checklist "Escolha um agendamento para remover:" 13 42 6 $cron_list 3>&1 1>&2 2>&3)
 
     # Verifica se o usuário cancelou a operação
     if [ -z "$schedule_to_remove" ]; then
@@ -319,7 +322,8 @@ remove_schedule() {
 
     # Remove o agendamento selecionado
     for schedule in $schedule_to_remove; do
-        crontab -l | grep -v "$schedule" | crontab -
+        local line_to_remove=$(sed -n "${schedule}p" "$cron_file")
+        crontab -l | grep -vF "$line_to_remove" | crontab -
     done
 
     dialog --title "Agendamento" --msgbox "Agendamento(s) removido(s)." 6 50

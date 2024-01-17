@@ -37,7 +37,7 @@ update_cron() {
     local port=$4
     local scriptPath="/usr/local/bin/agendarproxy"
 
-    local cron_entry="0 $hour * * * $scriptPath --schedule $hour \"$scheduleName\" $port"
+    local cron_entry="0 $hour * * * $scriptPath --schedule \"$scheduleName\" $port"
 
     local current_cron=$(crontab -l | grep -v "$scriptPath")
 
